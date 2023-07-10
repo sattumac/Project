@@ -1,0 +1,48 @@
+REPORT z_download_bcset_flat_files.
+
+DATA: lv_directory TYPE string,
+      lv_filename  TYPE string,
+      lv_filepath  TYPE string.
+
+PARAMETERS: p_bcset_name TYPE string LOWER CASE OBLIGATORY.
+
+* Set the directory path where the files will be downloaded
+lv_directory = '/usr/local/download/'.
+
+* Check if the directory exists
+IF NOT cl_gui_frontend_services=>directory_exist( lv_directory ).
+  MESSAGE 'Directory does not exist!' TYPE 'E' DISPLAY LIKE 'I'.
+  EXIT.
+ENDIF.
+
+* Set the filename based on the BCSET name
+lv_filename = p_bcset_name && '.txt'.
+
+* Set the full file path
+CONCATENATE lv_directory lv_filename INTO lv_filepath.
+
+* Check if the file already exists
+IF cl_gui_frontend_services=>file_exist( lv_filepath ) = abap_true.
+  MESSAGE 'File already exists!' TYPE 'E' DISPLAY LIKE 'I'.
+  EXIT.
+ENDIF.
+
+* Call the function module to download the BCSET file
+CALL FUNCTION 'SRT_EXPORT_BUSINESS_SET'
+  EXPORTING
+    i_set         = p_bcset_name
+    i_directory   = lv_directory
+    i_file_name   = lv_filename
+  EXCEPTIONS
+    file_not_open = 1
+    OTHERS        = 2.
+
+* Check for errors during file download
+CASE sy-subrc.
+  WHEN 0.
+    MESSAGE 'BCSET file downloaded successfully!' TYPE 'S' DISPLAY LIKE 'I'.
+  WHEN 1.
+    MESSAGE 'File not open!' TYPE 'E' DISPLAY LIKE 'I'.
+  WHEN 2.
+    MESSAGE 'Error during file download!' TYPE 'E' DISPLAY LIKE 'I'.
+ENDCASE.
